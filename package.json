@@ -10,7 +10,12 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.3.0",
+    "@fortawesome/free-solid-svg-icons": "^7.3.0",
+    "@fortawesome/vue-fontawesome": "^3.3.0",
+    "axios": "^1.18.1",
     "echarts": "^5.4.3",
+    "element-plus": "^2.14.2",
     "pinia": "^3.0.4",
     "vue": "^3.4.0",
     "vue-echarts": "^8.0.1",

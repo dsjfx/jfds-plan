@@ -1,64 +1,108 @@
 <template>
   <div class="gantt-view">
     <div class="page-header">
-      <h1>甘特图</h1>
-      <p>任务时间线</p>
+      <span class="page-title">任务时间线</span>
+      <span class="page-divider">·</span>
+      <span class="page-subtitle">甘特图</span>
     </div>
 
-    <div class="gantt-container">
-      <div class="gantt-timeline">
-        <div class="timeline-header">
-          <div class="task-label">任务</div>
-          <div class="time-slots">
-            <div v-for="hour in timeSlots" :key="hour" class="time-slot">{{ hour }}:00</div>
+    <div class="page-body">
+      <section class="summary-panel card">
+        <div class="panel-header">
+          <div>
+            <h2>今日进度</h2>
+            <p>查看今天任务状态和甘特图安排。</p>
           </div>
-          <div class="status-label">状态</div>
         </div>
 
-        <div v-for="task in ganttTasks" :key="task.id" class="timeline-row" @click="toggleTaskStatus(task)">
-          <div class="task-name">{{ task.title }}</div>
-          <div class="task-bar-container">
-            <div 
-              class="task-bar" 
-              :class="task.status"
-              :style="taskBarStyle(task)"
-            >
-              <span v-if="task.status === 'completed'" class="check-mark">✓</span>
+        <div class="summary-grid">
+          <div class="status-card">
+            <span class="status-title">总任务</span>
+            <span class="status-value">{{ taskStats.total }}</span>
+          </div>
+          <div class="status-card">
+            <span class="status-title">进行中</span>
+            <span class="status-value">{{ taskStats.inProgress }}</span>
+          </div>
+          <div class="status-card">
+            <span class="status-title">已完成</span>
+            <span class="status-value">{{ taskStats.completed }}</span>
+          </div>
+          <div class="status-card">
+            <span class="status-title">已逾期</span>
+            <span class="status-value">{{ taskStats.overdue }}</span>
+          </div>
+        </div>
+
+        <div class="gantt-legend">
+          <div class="legend-item">
+            <span class="legend-color completed"></span>
+            <span>已完成</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color in-progress"></span>
+            <span>进行中</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color todo"></span>
+            <span>待处理</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color overdue"></span>
+            <span>已逾期</span>
+          </div>
+          <div class="legend-hint">💡 点击任务条可切换任务状态。</div>
+        </div>
+      </section>
+
+      <section class="gantt-panel card">
+        <div class="panel-header">
+          <div>
+            <h2>甘特图任务</h2>
+            <p>通过时间线查看工作节奏。</p>
+          </div>
+          <div class="task-overview">共 {{ ganttTasks.length }} 项任务</div>
+        </div>
+
+        <div class="gantt-container">
+          <div class="gantt-timeline">
+            <div class="timeline-header">
+              <div class="task-label">任务</div>
+              <div class="time-slots">
+                <div v-for="hour in timeSlots" :key="hour" class="time-slot">{{ hour }}:00</div>
+              </div>
+              <div class="status-label">开始</div>
+              <div class="actions-label">操作</div>
+            </div>
+
+            <div v-for="task in ganttTasks" :key="task.id" class="timeline-row">
+              <div class="task-name">{{ task.title }}</div>
+              <div class="task-bar-container" @click="toggleTaskStatus(task)">
+                <div class="task-bar" :class="task.status" :style="taskBarStyle(task)">
+                  <span v-if="task.status === 'completed'" class="check-mark">✓</span>
+                </div>
+              </div>
+              <div class="task-status">{{ task.startTime }}</div>
+              <button class="delete-btn" @click.stop="deleteTask(task.id)">×</button>
             </div>
           </div>
-          <div class="task-status">{{ task.startTime }}</div>
-          <button class="delete-btn" @click.stop="deleteTask(task.id)">×</button>
         </div>
-      </div>
-    </div>
 
-    <div class="gantt-legend">
-      <div class="legend-item">
-        <span class="legend-color completed"></span>
-        <span>已完成</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-color in-progress"></span>
-        <span>进行中</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-color overdue"></span>
-        <span>已逾期</span>
-      </div>
-      <div class="legend-hint">💡 点击任务条切换状态</div>
-    </div>
-
-    <div class="add-task">
-      <input type="text" v-model="newTaskTitle" placeholder="添加任务..." @keyup.enter="addNewTask">
-      <input type="time" v-model="newTaskStartTime">
-      <input type="time" v-model="newTaskEndTime">
-      <button class="add-btn" @click="addNewTask">+ 添加</button>
+        <div class="gantt-actions">
+          <div class="add-task">
+            <input type="text" v-model="newTaskTitle" placeholder="添加任务..." @keyup.enter="addNewTask">
+            <input type="time" v-model="newTaskStartTime">
+            <input type="time" v-model="newTaskEndTime">
+            <button class="add-btn" @click="addNewTask">+ 添加</button>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { api } from '@/api'
 import { useTaskStore } from '@/stores/task'
 import type { Task } from '@/types'
@@ -97,6 +141,20 @@ const loadTasks = async () => {
   ganttTasks.value = await api.getGanttTasks(today)
 }
 
+const taskStats = computed(() => {
+  const total = ganttTasks.value.length
+  const completed = ganttTasks.value.filter((task) => task.status === 'completed').length
+  const inProgress = ganttTasks.value.filter((task) => task.status === 'in-progress').length
+  const overdue = ganttTasks.value.filter((task) => task.status === 'overdue').length
+
+  return {
+    total,
+    completed,
+    inProgress,
+    overdue,
+  }
+})
+
 const toggleTaskStatus = async (task: Task) => {
   const statusMap: Record<string, Task['status']> = {
     'todo': 'in-progress',
@@ -119,7 +177,7 @@ const addNewTask = async () => {
     status: 'todo',
     startTime: newTaskStartTime.value,
     endTime: newTaskEndTime.value,
-    date: today,
+    planDate: today,
   })
   ganttTasks.value.push(newTask)
   newTaskTitle.value = ''
@@ -143,19 +201,94 @@ onMounted(() => {
 }
 
 .page-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
 
-  h1 {
-    font-size: 28px;
+  .page-title {
+    font-size: 24px;
+    font-weight: 600;
     margin: 0 0 8px 0;
     color: var(--text-primary);
   }
 
-  p {
+  .page-divider {
+    margin: 0 8px;
+    color: var(--text-secondary);
+    font-size: 20px;
+    font-weight: 400;
+  }
+
+  .page-subtitle {
     margin: 0;
     color: var(--text-secondary);
-    font-size: 15px;
+    font-size: 16px;
+    opacity: .6;
   }
+}
+
+.page-body {
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.summary-panel,
+.gantt-panel {
+  padding: 24px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.status-card {
+  background: var(--bg-color);
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+}
+
+.status-title {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.status-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.task-overview {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.gantt-actions {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
 }
 
 .gantt-container {
@@ -165,15 +298,18 @@ onMounted(() => {
   box-shadow: var(--shadow);
   margin-bottom: 20px;
   overflow-x: auto;
+  min-height: 220px;
 }
 
 .gantt-timeline {
   min-width: 800px;
+  display: grid;
+  gap: 16px;
 }
 
 .timeline-header {
   display: grid;
-  grid-template-columns: 150px 1fr 80px 40px;
+  grid-template-columns: 150px minmax(0, 1fr) 120px 60px;
   gap: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-color);
@@ -181,14 +317,15 @@ onMounted(() => {
 }
 
 .task-label,
-.status-label {
+.status-label,
+.actions-label {
   color: var(--text-secondary);
   font-size: 14px;
 }
 
 .time-slots {
   display: grid;
-  grid-template-columns: repeat(17, 1fr);
+  grid-template-columns: repeat(17, minmax(40px, 1fr));
   gap: 4px;
 }
 
@@ -237,7 +374,8 @@ onMounted(() => {
   transition: all 0.2s;
 
   &.todo {
-    background: var(--border-color);
+    background: rgba(107, 122, 161, 0.16);
+    border: 1px solid var(--border-color);
   }
 
   &.in-progress {
@@ -279,13 +417,11 @@ onMounted(() => {
 
 .gantt-legend {
   display: flex;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 18px;
   align-items: center;
-  padding: 16px 24px;
-  background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  margin-bottom: 20px;
+  padding: 16px 0;
+  margin-bottom: 0;
 }
 
 .legend-item {
@@ -307,6 +443,10 @@ onMounted(() => {
 
   &.in-progress {
     background: var(--color-in-progress);
+  }
+
+  &.todo {
+    background: var(--border-color);
   }
 
   &.overdue {

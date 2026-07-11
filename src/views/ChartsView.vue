@@ -5,56 +5,82 @@
       <p>多种数据可视化展示</p>
     </div>
 
+    <div class="query-panel card">
+      <div class="query-header">
+        <div>
+          <h2>历史规划查询</h2>
+          <p>按时间范围和状态查看历史任务统计。</p>
+        </div>
+        <div class="query-controls">
+          <div class="range-buttons">
+            <button :class="{ active: range === '7d' }" @click="range = '7d'">近7天</button>
+            <button :class="{ active: range === '30d' }" @click="range = '30d'">近30天</button>
+            <button :class="{ active: range === '90d' }" @click="range = '90d'">近90天</button>
+          </div>
+          <select v-model="statusFilter" class="status-select">
+            <option value="all">全部状态</option>
+            <option value="completed">已完成</option>
+            <option value="in-progress">进行中</option>
+            <option value="todo">待处理</option>
+            <option value="overdue">已逾期</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="query-summary">
+        <div class="summary-item">
+          <div class="summary-value">{{ queryStats.total }}</div>
+          <div class="summary-label">总任务</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">{{ queryStats.completed }}</div>
+          <div class="summary-label">已完成</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">{{ queryStats.pending }}</div>
+          <div class="summary-label">待处理</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">{{ queryStats.overdue }}</div>
+          <div class="summary-label">已逾期</div>
+        </div>
+      </div>
+    </div>
+
     <div class="charts-grid">
       <div class="chart-card">
         <div class="chart-header">
           <h3>任务分布（饼图）</h3>
         </div>
-        <v-chart
-          :option="pieChartOption"
-          class="chart-wrapper"
-          autoresize
-        />
+        <v-chart :option="pieChartOption" class="chart-wrapper" autoresize />
       </div>
 
       <div class="chart-card">
         <div class="chart-header">
           <h3>周任务统计（柱状图）</h3>
         </div>
-        <v-chart
-          :option="barChartOption"
-          class="chart-wrapper"
-          autoresize
-        />
+        <v-chart :option="barChartOption" class="chart-wrapper" autoresize />
       </div>
 
       <div class="chart-card full-width">
         <div class="chart-header">
           <h3>任务完成趋势（折线图）</h3>
         </div>
-        <v-chart
-          :option="lineChartOption"
-          class="chart-wrapper"
-          autoresize
-        />
+        <v-chart :option="lineChartOption" class="chart-wrapper" autoresize />
       </div>
 
       <div class="chart-card full-width">
         <div class="chart-header">
           <h3>任务优先级分布（雷达图）</h3>
         </div>
-        <v-chart
-          :option="radarChartOption"
-          class="chart-wrapper"
-          autoresize
-        />
+        <v-chart :option="radarChartOption" class="chart-wrapper" autoresize />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { PieChart, BarChart, LineChart, RadarChart } from "echarts/charts";
@@ -83,6 +109,28 @@ use([
 ]);
 
 const themeStore = useThemeStore();
+const range = ref<'7d' | '30d' | '90d'>('7d');
+const statusFilter = ref<'all' | 'completed' | 'in-progress' | 'todo' | 'overdue'>('all');
+
+const queryStats = computed(() => {
+  const base = {
+    total: 24,
+    completed: 14,
+    pending: 6,
+    overdue: 4,
+  };
+
+  if (statusFilter.value === 'all') {
+    return base;
+  }
+
+  return {
+    total: base.total,
+    completed: statusFilter.value === 'completed' ? base.completed : 0,
+    pending: statusFilter.value === 'in-progress' || statusFilter.value === 'todo' ? base.pending : 0,
+    overdue: statusFilter.value === 'overdue' ? base.overdue : 0,
+  };
+});
 
 const pieChartOption = computed(() => {
   const colors = chartColors[themeStore.theme];
@@ -364,9 +412,49 @@ const radarChartOption = computed(() => {
 
 .charts-view {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.page-header {
+.card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.query-panel {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding: 24px;
+}
+
+.chart-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card.full-width {
+  grid-column: span 2;
+}
+
+.chart-card .chart-wrapper {
+  flex: 1;
+  min-height: 300px;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-header {
   margin-bottom: 24px;
 
   h1 {
@@ -384,8 +472,104 @@ const radarChartOption = computed(() => {
 
 .charts-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
+}
+
+.query-panel {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.query-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.query-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.range-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.range-buttons button,
+.status-select {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 10px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.range-buttons button.active {
+  background: var(--text-primary);
+  color: var(--card-bg);
+  border-color: transparent;
+}
+
+.status-select {
+  min-width: 160px;
+}
+
+.query-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.chart-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card.full-width {
+  grid-column: span 2;
+}
+
+.chart-card .chart-wrapper {
+  flex: 1;
+  min-height: 300px;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-header {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.summary-label {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .chart-card {

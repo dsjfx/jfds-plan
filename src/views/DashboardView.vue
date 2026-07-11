@@ -9,20 +9,9 @@
       <div class="stat-card completion-card">
         <div class="completion-ring">
           <svg viewBox="0 0 100 100">
-            <circle
-              class="bg"
-              cx="50"
-              cy="50"
-              r="40"
-            />
-            <circle
-              class="progress"
-              cx="50"
-              cy="50"
-              r="40"
-              :stroke-dasharray="circumference"
-              :stroke-dashoffset="dashOffset"
-            />
+            <circle class="bg" cx="50" cy="50" r="40" />
+            <circle class="progress" cx="50" cy="50" r="40" :stroke-dasharray="circumference"
+              :stroke-dashoffset="dashOffset" />
           </svg>
           <div class="completion-text">
             <div class="percentage">
@@ -76,90 +65,48 @@
       <div class="section-header">
         <span class="section-title">📋 任务列表</span>
         <div class="task-filters">
-          <button
-            :class="{ active: filter === 'all' }"
-            @click="filter = 'all'"
-          >
+          <button :class="{ active: filter === 'all' }" @click="filter = 'all'">
             全部
           </button>
-          <button
-            :class="{ active: filter === 'in-progress' }"
-            @click="filter = 'in-progress'"
-          >
+          <button :class="{ active: filter === 'in-progress' }" @click="filter = 'in-progress'">
             进行中
           </button>
-          <button
-            :class="{ active: filter === 'completed' }"
-            @click="filter = 'completed'"
-          >
+          <button :class="{ active: filter === 'completed' }" @click="filter = 'completed'">
             已完成
           </button>
         </div>
       </div>
 
       <div class="task-list">
-        <div
-          v-for="task in filteredTasks"
-          :key="task.id"
-          class="task-item"
-          :class="task.status"
-        >
-          <input
-            type="checkbox"
-            :checked="task.status === 'completed'"
-            @change="taskStore.toggleTaskStatus(task)"
-          >
+        <div v-for="task in filteredTasks" :key="task.id" class="task-item" :class="task.status">
+          <input type="checkbox" :checked="task.status === 'completed'" @change="taskStore.toggleTaskStatus(task)">
           <span class="task-title">{{ task.title }}</span>
-          <span
-            v-if="task.status === 'in-progress' || task.status === 'overdue'"
-            class="priority-dot"
-          />
+          <span v-if="task.status === 'in-progress' || task.status === 'overdue'" class="priority-dot" />
           <span class="task-time">{{ task.startTime }}</span>
-          <button
-            class="delete-btn"
-            @click="taskStore.deleteTask(task.id)"
-          >
+          <button class="delete-btn" @click="taskStore.deleteTask(task.id)">
             ×
           </button>
         </div>
       </div>
 
       <div class="add-task">
-        <input
-          v-model="newTaskTitle"
-          type="text"
-          placeholder="添加新任务..."
-          @keyup.enter="addNewTask"
-        >
-        <input
-          v-model="newTaskTime"
-          type="time"
-        >
-        <button
-          class="add-btn"
-          @click="addNewTask"
-        >
+        <input v-model="newTaskTitle" type="text" placeholder="添加新任务..." @keyup.enter="addNewTask">
+        <input v-model="newTaskTime" type="time">
+        <button class="add-btn" @click="addNewTask">
           添加
         </button>
       </div>
 
-      <button
-        class="clear-completed"
-        @click="taskStore.clearCompleted"
-      >
+      <button class="clear-completed" @click="taskStore.clearCompleted">
         🗑️ 清除已完成
       </button>
     </div>
 
-    <div class="chart-section">
+    <div class="chart-section card">
       <div class="section-header">
         <span class="section-title">📈 任务趋势</span>
       </div>
-      <v-chart
-        :option="chartOption"
-        class="chart-container"
-        autoresize
-      />
+      <v-chart :option="chartOption" class="chart-container" autoresize />
     </div>
   </div>
 </template>
@@ -214,7 +161,7 @@ const addNewTask = async () => {
     status: "todo",
     startTime: newTaskTime.value,
     endTime: newTaskTime.value,
-    date: today,
+    planDate: today,
   });
   newTaskTitle.value = "";
 };
@@ -362,50 +309,76 @@ onMounted(() => {
   align-items: center;
 }
 
+.card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  gap: 16px;
+}
+
+.section-title {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.chart-container {
+  width: 100%;
+  min-height: 320px;
+}
+
 .completion-ring {
   position: relative;
   width: 120px;
   height: 120px;
+}
 
-  svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
+.completion-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
 
-    circle {
-      fill: none;
-      stroke-width: 8;
-      stroke-linecap: round;
-    }
+.completion-ring svg circle {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
 
-    .bg {
-      stroke: var(--border-color);
-    }
+.completion-ring .bg {
+  stroke: var(--border-color);
+}
 
-    .progress {
-      stroke: var(--color-completed);
-      transition: stroke-dashoffset 0.5s ease;
-    }
-  }
+.completion-ring .progress {
+  stroke: var(--color-completed);
+  transition: stroke-dashoffset 0.5s ease;
+}
 
-  .completion-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
+.completion-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
 
-    .percentage {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
+.completion-text .percentage {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
 
-    .label {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-  }
+.completion-text .label {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .task-section {

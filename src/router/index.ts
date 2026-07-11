@@ -12,9 +12,9 @@ const routes = [
         component: () => import('@/views/DashboardView.vue'),
       },
       {
-        path: 'gantt',
-        name: 'Gantt',
-        component: () => import('@/views/GanttView.vue'),
+        path: 'taskline',
+        name: 'TaskLine',
+        component: () => import('@/views/TaskLine.vue'),
       },
       {
         path: 'charts',

@@ -1,13 +1,4 @@
-export interface Task {
-  id: number
-  title: string
-  description?: string
-  status: 'todo' | 'in-progress' | 'completed' | 'overdue'
-  startTime: string
-  endTime: string
-  date: string
-  priority?: 'low' | 'medium' | 'high'
-}
+import type { Task2 } from './task'
 
 export interface DashboardStats {
   totalTasks: number
@@ -20,3 +11,5 @@ export interface DashboardStats {
 export type Theme = 'light' | 'dark'
 
 export type ViewMode = 'dashboard' | 'gantt'
+
+export type { Task2 as Task }
