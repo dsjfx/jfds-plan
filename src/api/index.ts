@@ -12,7 +12,7 @@ export interface ApiService {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 class MockApiService implements ApiService {
-  async getTasks(date?: string): Promise<Task[]> {
+  async getTasks(_date?: string): Promise<Task[]> {
     await delay(300)
     return [...staticTasks]
   }
@@ -45,7 +45,7 @@ class MockApiService implements ApiService {
     }
   }
 
-  async getGanttTasks(date?: string): Promise<Task[]> {
+  async getGanttTasks(_date?: string): Promise<Task[]> {
     await delay(300)
     return [...ganttTasks]
   }

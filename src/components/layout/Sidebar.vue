@@ -1,7 +1,24 @@
 <template>
   <aside class="app-sidebar">
     <div class="sidebar-header">
-      <h1>📋 任务计划</h1>
+
+      <el-dropdown v-if="user" @command="handleCommand" class="user-dropdown">
+        <span class="user-trigger el-dropdown-link">
+          <el-avatar :src="avatarSrc" size="default" />
+          <span class="user-name">{{ user.nickname || user.username }}</span>
+          <i class="el-icon-arrow-down el-icon--right"></i>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+
+      <div class="brand-block">
+        <h1>任务计划</h1>
+      </div>
+
     </div>
 
     <nav class="sidebar-nav">
@@ -21,7 +38,27 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
+import { useAuth } from '@/composables/useAuth'
+
+const router = useRouter()
+const auth = useAuth()
+const user = auth.user
+console.log(user.value.value?.nickname)
+const userInitials = computed(() => {
+  if (!auth.user) return ''
+  const name = auth.user.nickname || auth.user.username
+  return name.slice(0, 2).toUpperCase()
+})
+
+const avatarSrc = computed(() => {
+  if (auth.user?.avatar) {
+    return auth.user.avatar
+  }
+
+  return 'https://picsum.photos/200/200?random=10'
+})
 
 const themeStore = useThemeStore()
 const currentTheme = computed(() => themeStore.theme)
@@ -34,6 +71,14 @@ const menuItems = [
 
 const toggleTheme = () => {
   themeStore.toggleTheme()
+}
+
+function handleCommand(command: string) {
+  if (command === 'logout') {
+    auth.logout().finally(() => {
+      router.push({ name: 'Login' })
+    })
+  }
 }
 </script>
 
@@ -58,13 +103,46 @@ const toggleTheme = () => {
 }
 
 .sidebar-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 30px;
   margin-bottom: 32px;
+}
 
-  h1 {
-    font-size: 22px;
-    color: var(--text-primary);
-    margin: 0;
-  }
+.brand-block {
+  display: flex;
+  align-items: center;
+  width: 100px;
+}
+
+.brand-block h1 {
+  font-size: 22px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.user-dropdown {
+  width: auto;
+}
+
+.user-trigger {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.user-trigger:hover {
+  color: var(--text-primary);
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .sidebar-nav {
