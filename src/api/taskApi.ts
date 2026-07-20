@@ -8,10 +8,12 @@ const API_BASE = '/tasks'
  * @param planDate 
  * @returns 
  */
-export async function getTasksByDate(planDate: string): Promise<GanttTask[]> {
+export async function getTasksByDate(planDate: string, userId?: number): Promise<GanttTask[]> {
+  const params: any = { plan_date: planDate }
+  if (userId !== undefined) params.user_id = userId
   return get<GanttTask[]>(
     `${API_BASE}/`,
-    { params: { plan_date: planDate } }
+    { params }
   )
 }
 
@@ -48,6 +50,16 @@ export async function toggleTaskDone(taskId: number, isDone: boolean): Promise<G
 }
 
 /**
+ * update task remark
+ */
+export async function updateTaskRemark(taskId: number, data: UpdateTaskRequest): Promise<GanttTask> {
+  return patch<GanttTask>(
+    `${API_BASE}/${taskId}/remark`,
+    { remark: data.remark }
+  )
+}
+
+/**
  * delete a task
  */
 export async function deleteTask(taskId: number): Promise<void> {
@@ -59,9 +71,11 @@ export async function deleteTask(taskId: number): Promise<void> {
 /**
  * clear all done tasks for a specific plan date
  */
-export async function clearDoneTasks(planDate: string): Promise<void> {
+export async function clearDoneTasks(planDate: string, userId?: number): Promise<void> {
+  const params: any = { plan_date: planDate }
+  if (userId !== undefined) params.user_id = userId
   return del<void>(
     `${API_BASE}/`,
-    { params: { plan_date: planDate } }
+    { params }
   )
 }

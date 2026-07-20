@@ -192,7 +192,7 @@ async function handleLogin() {
 
       if (success) {
         ElMessage.success('登录成功！')
-        router.push('/dashboard')
+        router.push('/')
       } else {
         ElMessage.error('用户名或密码错误')
       }

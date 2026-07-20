@@ -45,16 +45,15 @@ import { useAuth } from '@/composables/useAuth'
 const router = useRouter()
 const auth = useAuth()
 const user = auth.user
-console.log(user.value.value?.nickname)
-const userInitials = computed(() => {
-  if (!auth.user) return ''
-  const name = auth.user.nickname || auth.user.username
-  return name.slice(0, 2).toUpperCase()
-})
+// const userInitials = computed(() => {
+//   if (!auth.user) return ''
+//   const name = user.value?.nickname || user.value?.username
+//   return name.slice(0, 2).toUpperCase()
+// })
 
 const avatarSrc = computed(() => {
-  if (auth.user?.avatar) {
-    return auth.user.avatar
+  if (user.value?.avatar) {
+    return user.value?.avatar
   }
 
   return 'https://picsum.photos/200/200?random=10'

@@ -12,13 +12,16 @@ const axiosInstance: AxiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
 
     // 添加默认参数
     config.params = {
       ...config.params,
       timestamp: Date.now(),
       version: import.meta.env.VITE_APP_VERSION,
-
     };
 
     return config
@@ -63,6 +66,12 @@ function handleHttpError(error: unknown): Promise<never> {
           break
         case 401:
           message = '未授权，请重新登录'
+          if (error.response?.status === 401) {
+            // Token 过期或无效，跳转到登录页
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('user_info')
+            window.location.href = '/login'
+          }
           break
         case 403:
           message = '禁止访问，权限不足'

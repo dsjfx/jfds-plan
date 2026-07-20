@@ -36,22 +36,6 @@ const routes = [
       }
     ],
   },
-  // {
-  //   path: '/login',
-  //   name: 'Login',
-  //   component: () => import('@/views/Login.vue'),
-  // },
-  {
-    path: '/abc',
-    name: 'abc',
-    component: () => import('@/views/LoginView.vue'),
-  },
-  // {
-  //   path: '/register',
-  //   name: 'Register',
-  //   component: () => import('@/views/LoginView.vue'),
-  //   props: { initialMode: 'register' },
-  // },
 ]
 
 const router = createRouter({

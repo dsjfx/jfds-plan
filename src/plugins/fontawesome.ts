@@ -7,11 +7,12 @@ import {
   faChevronLeft,
   faChevronRight,
   faPlus,
-  faCheck
+  faCheck,
+  faEdit
 } from '@fortawesome/free-solid-svg-icons'
 
 
-library.add(faTrashAlt, faCalendarDay, faChevronLeft, faChevronRight, faPlus, faCheck)
+library.add(faTrashAlt, faCalendarDay, faChevronLeft, faChevronRight, faPlus, faCheck, faEdit)
 
 export default {
   install(app: any) {

@@ -21,6 +21,7 @@ export interface GanttTask {
   endTime: string       // 'HH:MM'
   priority?: 'low' | 'medium' | 'high'
   isDone: boolean
+  remark?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -36,17 +37,22 @@ export interface TaskWithStatus extends GanttTask {
 // API 请求/响应类型
 export interface CreateTaskRequest {
   name: string
+  description?: string
   plan_date: string
   start_time?: string
   end_time?: string
+  user_id?: number
 }
 
 export interface UpdateTaskRequest {
   name?: string
+  description?: string
   plan_date?: string
   start_time?: string
   end_time?: string
   is_done?: boolean
+  remark?: string
+  user_id: number | undefined
 }
 
 export interface ToggleDoneRequest {

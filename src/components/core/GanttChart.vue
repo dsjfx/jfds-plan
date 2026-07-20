@@ -27,9 +27,9 @@
       </el-button>
     </div>
 
-    <!-- ===== 甘特图主体 ===== -->
+    <!-- gantt chart -->
     <div class="gantt-chart">
-      <!-- 时间轴头部 -->
+      <!-- timeline header -->
       <div class="timeline-header">
         <span class="task-label-col">任务</span>
         <div class="hour-col">
@@ -37,20 +37,22 @@
             {{ String(h).padStart(2, '0') }}:00
           </span>
         </div>
-        <span class="time-range-col">时间</span>
+        <!-- <span class="time-range-col">时间</span> -->
         <span class="action-col">操作</span>
       </div>
 
-      <!-- 任务行 -->
-      <div class="tafilteredTaskssk-rows">
+      <!-- task rows -->
+      <div class="task-rows">
         <div v-if="filteredTasks.length === 0" class="empty-state">
           📭 今天还没有计划，添加一条吧
         </div>
         <div v-for="task in filteredTasks" :key="task.id" class="task-row" :class="{ 'task-done': task.isDone }">
           <!-- 任务名称 + 状态点 -->
-          <span class="task-label" :title="task.name">
+          <span class="task-label">
             <span class="status-dot" :class="task.status"></span>
-            {{ task.name }}
+            <span :title="task.description">{{ task.name }}</span>
+            <RemarkText v-model="task.remark" :id="task.id" :content="task.name" @save="handleSaveRemark"
+              @open="handleOpen" @close="handleClose" ref="remarkRef" />
           </span>
 
           <!-- 甘特条 -->
@@ -61,14 +63,20 @@
           </div>
 
           <!-- 时间范围 -->
-          <span class="time-range">
+          <!-- <span class="time-range">
             {{ task.startTime || '--:--' }} - {{ task.endTime || '--:--' }}
-          </span>
+          </span> -->
 
-          <!-- 删除按钮 -->
-          <el-button link class="delete-btn" @click="handleDeleteTask(task.id)" title="删除任务">
-            <font-awesome-icon icon="trash-alt" />
-          </el-button>
+          <span class="action">
+            <!-- 更新按钮 -->
+            <el-button link class="update-btn" @click.stop="openEditDialog(task)" title="更新任务">
+              <font-awesome-icon icon="edit" />
+            </el-button>
+            <!-- 删除按钮 -->
+            <el-button link class="delete-btn" @click="handleDeleteTask(task.id)" title="删除任务">
+              <font-awesome-icon icon="trash-alt" />
+            </el-button>
+          </span>
         </div>
       </div>
     </div>
@@ -84,35 +92,65 @@
     </div>
 
     <div class="add-area">
-      <el-input v-model="newTaskName" placeholder="添加任务…" clearable @keyup.enter="handleAddTask" class="task-input" />
+      <!-- <el-input v-model="newTaskName" placeholder="添加任务…" clearable @keyup.enter="handleAddTask" class="task-input" />
       <el-time-picker v-model="newStartTime" :is-range="isRange" start-placeholder="Start time"
         end-placeholder="End time" format="HH:mm" value-format="HH:mm" class="time-input" />
       <span class="time-sep">-></span>
       <el-time-picker v-model="newEndTime" :is-range="isRange" placeholder="结束时间" format="HH:mm" value-format="HH:mm"
-        class="time-input" />
-      <el-button type="primary" @click="handleAddTask" class="add-btn">
+        class="time-input" /> -->
+      <el-button type="primary" @click="openEditDialog" class="add-btn">
         <font-awesome-icon icon="plus" /> 添加
       </el-button>
       <el-button type="warning" @click="handleClearDone" class="clear-btn">
-        <font-awesome-icon icon="trash-alt" /> 清除已完成
+        <font-awesome-icon icon="trash-alt" /> 清除
       </el-button>
     </div>
 
-    <!-- ===== 错误提示 ===== -->
-    <div v-if="error" class="error-message">
-      ⚠️ {{ error }}
-    </div>
+    <!-- 新增/修改 对话框 -->
+    <el-dialog v-model="editDialogVisible" :title="dialogTitle" width="520px" :before-close="closeEditDialog">
+      <el-form :model="editForm" label-width="100px" ref="editFormRef">
+        <el-form-item label="任务名称" prop="name" :rules="[{ required: true, message: '请输入任务名称', trigger: 'blur' }]">
+          <el-input v-model="editForm.name" placeholder="任务名称" />
+        </el-form-item>
+
+        <el-form-item label="日期" prop="plan_date" :rules="[{ required: true, message: '请选择计划日期', trigger: 'change' }]">
+          <el-date-picker v-model="editForm.plan_date" type="date" format="YYYY-MM-DD" value-format="YYYY-MM-DD"
+            placeholder="选择日期" style="width: 100%;" />
+        </el-form-item>
+
+        <div class="dialog-time-row">
+          <el-form-item label="开始" prop="start_time">
+            <el-time-picker v-model="editForm.start_time" placeholder="开始时间" format="HH:mm" value-format="HH:mm"
+              style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="结束" prop="end_time">
+            <el-time-picker v-model="editForm.end_time" placeholder="结束时间" format="HH:mm" value-format="HH:mm"
+              style="width: 100%;" />
+          </el-form-item>
+        </div>
+
+        <el-form-item label="描述" prop="description">
+          <el-input type="textarea" v-model="editForm.description" placeholder="任务描述（可选）" rows="3" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="closeEditDialog">取消</el-button>
+        <el-button type="primary" @click="handleUpdateTask(editForm.id)">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { GanttTask, TaskWithStatus } from '@/types/task'
-import { getTasksByDate, createTask, deleteTask, clearDoneTasks } from '@/api/taskApi'
+import type { GanttTask, TaskWithStatus, UpdateTaskRequest } from '@/types/task'
+import { getTasksByDate, createTask, deleteTask, clearDoneTasks, updateTask, updateTaskRemark } from '@/api/taskApi'
 import { useTaskStatus } from '@/composables/useTaskStatus'
-import { loadData } from '@/data/staticData'
+// import { loadData } from '@/data/staticData'
 import { getCurrentDate } from '@/utils/taskStatus'
+import RemarkText, { RemarkData } from './RemarkText.vue'
 
 const props = defineProps<{
   initialDate?: string
@@ -127,6 +165,27 @@ const emit = defineEmits<{
 }>()
 
 
+interface EditTaskForm {
+  id: number | undefined
+  name: string
+  plan_date: string
+  start_time: string
+  end_time: string
+  description?: string
+}
+
+const initEditForm = () => {
+  const _editTask: EditTaskForm = {
+    id: undefined,
+    name: '',
+    plan_date: getCurrentDate(),
+    start_time: '',
+    end_time: '',
+    description: '',
+  }
+  return _editTask
+}
+
 const tasks = ref<GanttTask[]>([])
 const currentDate = ref(props.initialDate || getCurrentDate())
 const newTaskName = ref('')
@@ -135,12 +194,16 @@ const newEndTime = ref('10:00')
 const isLoading = ref(false)
 const isRange = ref<boolean>(false)
 const error = ref<string | null>(null)
+const editDialogVisible = ref(false)
+const editFormRef = ref<any>(null)
+const editForm = ref<EditTaskForm>(initEditForm())
+const dialogTitle = ref<string>('')
 
 const {
   toggleTask,
   getTaskWithStatus,
-  stats,
-  hasOverdue,
+  // stats,
+  // hasOverdue,
   refreshStatuses
 } = useTaskStatus(tasks, currentDate, loadTasks)
 
@@ -148,13 +211,13 @@ const {
 const startHour = 8
 const endHour = 22
 
-function formatDateDisplay(dateStr: string): string {
-  const today = getCurrentDate()
-  if (dateStr === today) return '今天'
-  const d = new Date(dateStr + 'T00:00:00')
-  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-  return `${d.getMonth() + 1}月${d.getDate()}日 周${weekdays[d.getDay()]}`
-}
+// function formatDateDisplay(dateStr: string): string {
+//   const today = getCurrentDate()
+//   if (dateStr === today) return '今天'
+//   const d = new Date(dateStr + 'T00:00:00')
+//   const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+//   return `${d.getMonth() + 1}月${d.getDate()}日 周${weekdays[d.getDay()]}`
+// }
 
 function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -169,7 +232,7 @@ function timeToMinutes(timeStr: string): number {
 }
 
 
-const dateDisplay = computed(() => formatDateDisplay(currentDate.value))
+// const dateDisplay = computed(() => formatDateDisplay(currentDate.value))
 
 const hourRange = computed(() => {
   const hours: number[] = []
@@ -200,11 +263,21 @@ async function loadTasks() {
   isLoading.value = true
   error.value = null
   try {
-    const result = await getTasksByDate(currentDate.value)
+    const userInfoStr = localStorage.getItem('user_info')
+    let userId: number | undefined = undefined
+    try {
+      const obj = userInfoStr ? JSON.parse(userInfoStr) : null
+      if (obj && typeof obj.id === 'number') userId = obj.id
+    } catch {
+      userId = undefined
+    }
+
+    const result = await getTasksByDate(currentDate.value, userId)
     tasks.value = result
   } catch (err: any) {
-    error.value = err.message || '加载任务失败'
-    emit('error', error.value)
+    const msg = err.message || '加载任务失败'
+    ElMessage.error(msg)
+    emit('error', msg)
   } finally {
     isLoading.value = false
   }
@@ -241,7 +314,8 @@ function getBarClass(task: TaskWithStatus) {
 }
 
 function getBarTooltip(task: TaskWithStatus): string {
-  return `${task.name}\n${task.startTime || '--:--'} - ${task.endTime || '--:--'}\n状态: ${task.statusLabel}\n点击切换完成状态`
+  // return `时间：${task.startTime || '--:--'} - ${task.endTime || '--:--'}\n状态: ${task.statusLabel}\n`
+  return `${task.startTime || '--:--'} - ${task.endTime || '--:--'}`
 }
 
 // ===== 操作函数 =====
@@ -257,51 +331,66 @@ async function handleToggleTask(taskId: number) {
 }
 
 async function handleAddTask() {
-  const name = newTaskName.value.trim()
+  const name = editForm.value.name.trim()
   if (!name) {
-    error.value = '请输入任务名称'
+    ElMessage.error('请输入任务名称')
     return
   }
 
-  const startTime = newStartTime.value
-  const endTime = newEndTime.value
+  const startTime = editForm.value.start_time
+  const endTime = editForm.value.end_time
 
   // 验证时间
   if (startTime && endTime) {
     const startMin = timeToMinutes(startTime)
     const endMin = timeToMinutes(endTime)
     if (endMin <= startMin) {
-      error.value = '结束时间必须晚于开始时间'
+      ElMessage.error('结束时间必须晚于开始时间')
       return
     }
     const baseMin = startHour * 60
     if (startMin < baseMin || endMin > (endHour * 60)) {
-      error.value = `时间范围请控制在 ${startHour}:00 - ${endHour}:00 之间`
+      ElMessage.error(`时间范围请控制在 ${startHour}:00 - ${endHour}:00 之间`)
       return
     }
   }
+
+  const desc = editForm.value.description
 
   isLoading.value = true
   error.value = null
 
   try {
+    const userInfoStr = localStorage.getItem('user_info')
+    let userId: number | undefined = undefined
+    try {
+      const obj = userInfoStr ? JSON.parse(userInfoStr) : null
+      if (obj && typeof obj.id === 'number') userId = obj.id
+    } catch {
+      userId = undefined
+    }
+
     const newTask = await createTask({
       name,
       plan_date: currentDate.value,
       start_time: startTime || undefined,
-      end_time: endTime || undefined
+      end_time: endTime || undefined,
+      description: desc,
+      user_id: userId,
     })
 
     tasks.value.push(newTask)
     emit('taskAdd', newTask)
 
-    newTaskName.value = ''
-    newStartTime.value = '08:00'
-    newEndTime.value = '10:00'
+    // newTaskName.value = ''
+    // newStartTime.value = '08:00'
+    // newEndTime.value = '10:00'
     refreshStatuses()
+    editDialogVisible.value = false
   } catch (err: any) {
-    error.value = err.message || '添加任务失败'
-    emit('error', error.value)
+    const msg = err.message || '添加任务失败'
+    ElMessage.error(msg)
+    emit('error', msg)
   } finally {
     isLoading.value = false
   }
@@ -331,8 +420,9 @@ async function handleDeleteTask(taskId: number) {
     refreshStatuses()
     ElMessage.success('任务已删除')
   } catch (err: any) {
-    error.value = err.message || '删除任务失败'
-    emit('error', error.value)
+    const msg = err.message || '删除任务失败'
+    ElMessage.error(msg)
+    emit('error', msg)
   } finally {
     isLoading.value = false
   }
@@ -341,7 +431,7 @@ async function handleDeleteTask(taskId: number) {
 async function handleClearDone() {
   const hasDone = tasks.value.some(t => t.planDate === currentDate.value && t.isDone)
   if (!hasDone) {
-    error.value = '今天没有已完成的任务'
+    ElMessage.warning('今天没有已完成的任务')
     return
   }
 
@@ -359,13 +449,23 @@ async function handleClearDone() {
   error.value = null
 
   try {
-    await clearDoneTasks(currentDate.value)
+    const userInfoStr = localStorage.getItem('user_info')
+    let userId: number | undefined = undefined
+    try {
+      const obj = userInfoStr ? JSON.parse(userInfoStr) : null
+      if (obj && typeof obj.id === 'number') userId = obj.id
+    } catch {
+      userId = undefined
+    }
+
+    await clearDoneTasks(currentDate.value, userId)
     tasks.value = tasks.value.filter(t => !(t.planDate === currentDate.value && t.isDone))
     refreshStatuses()
     ElMessage.success('已清除所有已完成任务')
   } catch (err: any) {
-    error.value = err.message || '清除已完成任务失败'
-    emit('error', error.value)
+    const msg = err.message || '清除已完成任务失败'
+    ElMessage.error(msg)
+    emit('error', msg)
   } finally {
     isLoading.value = false
   }
@@ -379,6 +479,133 @@ function changeDate(delta: number) {
 function goToday() {
   currentDate.value = getCurrentDate()
   emit('dateChange', currentDate.value)
+}
+
+function getCurrentUserId(): number | undefined {
+  const userInfoStr = localStorage.getItem('user_info')
+  if (!userInfoStr) return undefined
+  try {
+    const obj = JSON.parse(userInfoStr)
+    return typeof obj.id === 'number' ? obj.id : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function openEditDialog(task: GanttTask) {
+  editForm.value = initEditForm()
+
+  if (task && task.id) {
+    dialogTitle.value = '更新任务'
+    editForm.value = {
+      id: task.id,
+      name: task.name,
+      plan_date: task.planDate,
+      start_time: task.startTime || '',
+      end_time: task.endTime || '',
+      description: task.description || '',
+    }
+  } else {
+    dialogTitle.value = '新增任务'
+  }
+  editDialogVisible.value = true
+}
+
+function closeEditDialog() {
+  editDialogVisible.value = false
+  editFormRef.value?.clearValidate()
+}
+
+async function handleUpdateTask(id: number | undefined) {
+  if (!id) {
+    handleAddTask()
+    return
+  }
+
+  await editFormRef.value?.validate(async (valid: boolean) => {
+    if (!valid) return
+
+    if (editForm.value.start_time && editForm.value.end_time) {
+      const startMin = timeToMinutes(editForm.value.start_time)
+      const endMin = timeToMinutes(editForm.value.end_time)
+      if (endMin <= startMin) {
+        ElMessage.error('结束时间必须晚于开始时间')
+        return
+      }
+      const baseMin = startHour * 60
+      if (startMin < baseMin || endMin > endHour * 60) {
+        ElMessage.error(`时间范围请控制在 ${startHour}:00 - ${endHour}:00 之间`)
+        return
+      }
+    }
+
+    if (!editForm.value.plan_date) {
+      ElMessage.error('请选择计划日期')
+      return
+    }
+
+    if (!editForm.value.id) {
+      ElMessage.error('无效的任务 ID')
+      return
+    }
+
+    isLoading.value = true
+    try {
+      const updatedTask = await updateTask(editForm.value.id, {
+        name: editForm.value.name,
+        plan_date: editForm.value.plan_date,
+        start_time: editForm.value.start_time || undefined,
+        end_time: editForm.value.end_time || undefined,
+        description: editForm.value.description || undefined,
+        user_id: getCurrentUserId(),
+      })
+
+      const index = tasks.value.findIndex((item) => item.id === updatedTask.id)
+      if (index !== -1) {
+        tasks.value[index] = updatedTask
+      }
+      refreshStatuses()
+      ElMessage.success('任务已更新')
+      editDialogVisible.value = false
+    } catch (err: any) {
+      const msg = err.message || '更新任务失败'
+      ElMessage.error(msg)
+      emit('error', msg)
+    } finally {
+      isLoading.value = false
+    }
+  })
+}
+
+// 保存备注
+const handleSaveRemark = async ({ id, content }: RemarkData): Promise<boolean> => {
+  try {
+    const result = await updateTaskRemark(
+      id,
+      {
+        remark: content,
+        user_id: getCurrentUserId(),
+      }
+    )
+
+    console.log('保存成功：', result)
+    ElMessage.success('备注保存成功')
+    return true
+  } catch (error) {
+    console.error('保存失败：', error)
+    ElMessage.error('保存失败，请重试')
+    return false
+  }
+}
+
+// 打开编辑器
+const handleOpen = ({ id, content }: RemarkData): void => {
+  console.log('打开编辑器：', id, content)
+}
+
+// 关闭编辑器
+const handleClose = ({ id }: RemarkData): void => {
+  console.log('关闭编辑器：', id)
 }
 
 // ===== 定时刷新 =====
@@ -577,7 +804,7 @@ $breakpoint-mobile: 768px;
 }
 
 .legend-bar .dot.not-started {
-  background: #d5dce8;
+  background: #8d8e91;
 }
 
 /* ===== 甘特图主体 ===== */
@@ -593,71 +820,75 @@ $breakpoint-mobile: 768px;
 .timeline-header {
   display: flex;
   align-items: center;
+  min-width: 750px;
   padding: 8px 12px;
   background: #f5f6f9;
   border-bottom: 2px solid #e2e6ed;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: #7a879a;
-  font-weight: 500;
-  min-width: 750px;
-}
 
-.task-label-col {
-  width: 120px;
-  flex-shrink: 0;
-  text-align: left;
-}
+  .task-label-col {
+    width: 160px;
+    padding-left: 15px;
+    flex-shrink: 0;
+    text-align: left;
+    color: rgb(1, 75, 145);
+  }
 
-.hour-col {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 4px;
-  min-width: 300px;
-}
+  .hour-col {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    min-width: 300px;
+    padding: 0 4px;
 
-.hour-label {
-  font-size: 11px;
-  color: #7a879a;
-  flex: 1;
-  text-align: center;
-}
+    .hour-label {
+      flex: 1;
+      font-size: 14px;
+      // color: #7a879a;
+      color: #587702;
+      text-align: center;
+    }
+  }
 
-.time-range-col {
-  width: 130px;
-  flex-shrink: 0;
-  text-align: center;
-}
+  // .time-range-col {
+  //   width: 130px;
+  //   flex-shrink: 0;
+  //   text-align: center;
+  // }
 
-.action-col {
-  width: 44px;
-  flex-shrink: 0;
-  text-align: center;
+  .action-col {
+    width: 60px;
+    flex-shrink: 0;
+    text-align: center;
+    color: rgb(1, 75, 145);
+  }
 }
 
 /* ===== 任务行 ===== */
 .task-rows {
   min-height: 60px;
-}
 
-.empty-state {
-  text-align: center;
-  color: #b0b8c5;
-  padding: 40px 0;
-  font-size: 15px;
+  .empty-state {
+    padding: 40px 0;
+    font-size: 15px;
+    color: #b0b8c5;
+    text-align: center;
+  }
 }
 
 .task-row {
   display: flex;
   align-items: center;
+  min-width: 750px;
   padding: 6px 12px;
   border-bottom: 1px solid #f0f2f6;
   transition: 0.15s;
-  min-width: 750px;
-}
 
-.task-row:hover {
-  background: #f5f6f9;
+  &:hover {
+    background: #f5f6f9;
+  }
 }
 
 .task-row.task-done .task-label {
@@ -666,7 +897,7 @@ $breakpoint-mobile: 768px;
 }
 
 .task-label {
-  width: 120px;
+  width: 160px;
   flex-shrink: 0;
   font-size: 14px;
   color: #1a2332;
@@ -747,8 +978,14 @@ $breakpoint-mobile: 768px;
 }
 
 .bar-not-started {
-  background: linear-gradient(90deg, #d5dce8, #e8ecf2);
+  background: linear-gradient(90deg, #d5dce8, #8d8e91);
   opacity: 0.7;
+}
+
+.action {
+  display: flex;
+  width: 60px;
+  flex-shrink: 1;
 }
 
 @keyframes pulse-overdue {
@@ -790,30 +1027,44 @@ $breakpoint-mobile: 768px;
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== 删除按钮 ===== */
-.delete-btn {
-  width: 44px;
-  height: 36px;
-  flex-shrink: 0;
+.update-btn {
   background: none;
   border: none;
   border-radius: 8px;
   color: #c8ced8;
   cursor: pointer;
   transition: 0.2s;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+/* ===== 删除按钮 ===== */
+.delete-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-}
+  // width: 44px;
+  // height: 36px;
+  // flex-shrink: 0;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #c8ced8;
+  cursor: pointer;
+  transition: 0.2s;
 
-.delete-btn:hover {
-  background: #fee2e2;
-  color: #b15353;
-}
+  &:hover {
+    background: #fee2e2;
+    color: #b15353;
+  }
 
-.delete-btn svg {
-  width: 18px;
-  height: 18px;
+  svg {
+    width: 15px;
+    height: 15px;
+  }
 }
 
 /* ===== 底部添加区 ===== */
@@ -822,6 +1073,7 @@ $breakpoint-mobile: 768px;
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   padding-top: 14px;
   border-top: 1px solid #edf0f5;
 }
@@ -878,45 +1130,37 @@ $breakpoint-mobile: 768px;
   padding: 10px 24px;
   border: none;
   border-radius: 30px;
-  background: #1a2332;
+  background: #146300;
   color: white;
   font-weight: 500;
   font-size: 14px;
   cursor: pointer;
   transition: 0.2s;
   white-space: nowrap;
-}
 
-.add-btn:hover {
-  background: #2c3a4f;
-  transform: scale(0.97);
+  &:hover {
+    background: #2c3a4f;
+    transform: scale(0.97);
+  }
 }
 
 .clear-btn {
-  padding: 10px 18px;
+  padding: 10px 24px;
   border: none;
   border-radius: 30px;
-  background: none;
-  color: #b0b8c5;
-  font-size: 13px;
+  background: rgba(20, 99, 0, 0.2);
+  color: #146300;
+  font-size: 14px;
   cursor: pointer;
   transition: 0.2s;
   white-space: nowrap;
-}
 
-.clear-btn:hover {
-  background: #f0f2f6;
-  color: #b15353;
-}
-
-/* ===== 错误信息 ===== */
-.error-message {
-  margin-top: 12px;
-  padding: 10px 16px;
-  background: #fee2e2;
-  border-radius: 12px;
-  color: #b15353;
-  font-size: 14px;
+  &:hover {
+    background: rgba(20, 99, 0, 0.5);
+    font-weight: 500;
+    color: #be0303;
+    transform: scale(0.97);
+  }
 }
 
 /* ===== 响应式 ===== */
