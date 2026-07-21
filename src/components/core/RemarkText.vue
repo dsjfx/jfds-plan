@@ -112,9 +112,9 @@ const saving = ref<boolean>(false)
 const tooltipTimer = ref<number | null>(null)
 
 // ============ Computed ============
-const displayText = computed<string>(() => {
-  return props.content
-})
+// const displayText = computed<string>(() => {
+//   return props.content
+// })
 
 // interface Position {
 //   top: number

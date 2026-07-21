@@ -7,7 +7,7 @@
     </div>
 
     <div class="gantt-header">
-      <FontAwesomeIcon icon="calendar-day" class="header-icon" />
+      <FontAwesomeIcon :icon="['far', 'chart-bar']" class="header-icon" />
       <h2 class="header-title">任务时间线</h2>
       <span class="header-divider">·</span>
       <span class="header-subtitle">甘特图</span>
@@ -15,15 +15,16 @@
 
     <div class="gantt-date">
       <el-button link class="nav-btn" @click="changeDate(-1)" title="前一天">
-        <font-awesome-icon icon="chevron-left" />
+        <FontAwesomeIcon :icon="['fas', 'chevron-left']" />
       </el-button>
       <el-date-picker v-model="currentDate" type="date" format="YYYY-MM-DD" value-format="YYYY-MM-DD" placeholder="选择日期"
         class="date-picker" />
       <el-button link class="nav-btn" @click="changeDate(1)" title="后一天">
-        <font-awesome-icon icon="chevron-right" />
+        <FontAwesomeIcon :icon="['fas', 'chevron-right']" />
       </el-button>
       <el-button type="primary" @click="goToday" class="today-btn">
-        <font-awesome-icon icon="calendar-day" /> 今天
+        <FontAwesomeIcon :icon="['far', 'calendar']" />
+        <span class="today-text">今天</span>
       </el-button>
     </div>
 
@@ -44,37 +45,41 @@
       <!-- task rows -->
       <div class="task-rows">
         <div v-if="filteredTasks.length === 0" class="empty-state">
-          📭 今天还没有计划，添加一条吧
+          <FontAwesomeIcon :icon="['far', 'rectangle-list']" />
+          <span class="empty-text">
+            <span class="empty-text-start">[{{ dateDisplay }}]</span>
+            <span class="empty-text-end">还没有计划，请适时制定!</span>
+          </span>
         </div>
         <div v-for="task in filteredTasks" :key="task.id" class="task-row" :class="{ 'task-done': task.isDone }">
-          <!-- 任务名称 + 状态点 -->
+          <!-- dot and task name -->
           <span class="task-label">
             <span class="status-dot" :class="task.status"></span>
-            <span :title="task.description">{{ task.name }}</span>
+            <span class="task-name" :title="task.description">{{ task.name }}</span>
             <RemarkText v-model="task.remark" :id="task.id" :content="task.name" @save="handleSaveRemark"
               @open="handleOpen" @close="handleClose" ref="remarkRef" />
           </span>
 
-          <!-- 甘特条 -->
+          <!-- gantt bar -->
           <div class="bar-track" @click="handleToggleTask(task.id)">
             <div class="bar" :class="getBarClass(task)" :style="getBarStyle(task)" :title="getBarTooltip(task)">
               <span v-if="task.isDone" class="check-mark">✓</span>
             </div>
           </div>
 
-          <!-- 时间范围 -->
+          <!-- time range -->
           <!-- <span class="time-range">
             {{ task.startTime || '--:--' }} - {{ task.endTime || '--:--' }}
           </span> -->
 
           <span class="action">
-            <!-- 更新按钮 -->
+            <!-- update button -->
             <el-button link class="update-btn" @click.stop="openEditDialog(task)" title="更新任务">
-              <font-awesome-icon icon="edit" />
+              <FontAwesomeIcon :icon="['far', 'pen-to-square']" />
             </el-button>
-            <!-- 删除按钮 -->
+            <!-- delete button -->
             <el-button link class="delete-btn" @click="handleDeleteTask(task.id)" title="删除任务">
-              <font-awesome-icon icon="trash-alt" />
+              <FontAwesomeIcon :icon="['far', 'trash-can']" />
             </el-button>
           </span>
         </div>
@@ -86,23 +91,20 @@
       <span><span class="dot progress"></span>进行中</span>
       <span><span class="dot overdue"></span>已逾期</span>
       <span><span class="dot not-started"></span>未开始</span>
-      <span style="margin-left: auto; color: #b0b8c5; font-size: 12px;">
-        💡 点击任务条切换状态 · 悬停查看详情
+      <span class="hint">
+        <FontAwesomeIcon :icon="['far', 'alarm-clock']" />
+        <span class="hint-text">点击任务条切换状态 · 悬停查看详情</span>
       </span>
     </div>
 
-    <div class="add-area">
-      <!-- <el-input v-model="newTaskName" placeholder="添加任务…" clearable @keyup.enter="handleAddTask" class="task-input" />
-      <el-time-picker v-model="newStartTime" :is-range="isRange" start-placeholder="Start time"
-        end-placeholder="End time" format="HH:mm" value-format="HH:mm" class="time-input" />
-      <span class="time-sep">-></span>
-      <el-time-picker v-model="newEndTime" :is-range="isRange" placeholder="结束时间" format="HH:mm" value-format="HH:mm"
-        class="time-input" /> -->
+    <div class="task-operate">
       <el-button type="primary" @click="openEditDialog" class="add-btn">
-        <font-awesome-icon icon="plus" /> 添加
+        <FontAwesomeIcon :icon="['fas', 'plus']" />
+        <span class="add-text">添加</span>
       </el-button>
       <el-button type="warning" @click="handleClearDone" class="clear-btn">
-        <font-awesome-icon icon="trash-alt" /> 清除
+        <FontAwesomeIcon :icon="['far', 'trash-can']" />
+        <span class="clear-text">清除</span>
       </el-button>
     </div>
 
@@ -145,7 +147,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { GanttTask, TaskWithStatus, UpdateTaskRequest } from '@/types/task'
+import type { GanttTask, TaskWithStatus } from '@/types/task'
 import { getTasksByDate, createTask, deleteTask, clearDoneTasks, updateTask, updateTaskRemark } from '@/api/taskApi'
 import { useTaskStatus } from '@/composables/useTaskStatus'
 // import { loadData } from '@/data/staticData'
@@ -188,11 +190,11 @@ const initEditForm = () => {
 
 const tasks = ref<GanttTask[]>([])
 const currentDate = ref(props.initialDate || getCurrentDate())
-const newTaskName = ref('')
-const newStartTime = ref('08:00')
-const newEndTime = ref('10:00')
+// const newTaskName = ref('')
+// const newStartTime = ref('08:00')
+// const newEndTime = ref('10:00')
+// const isRange = ref<boolean>(false)
 const isLoading = ref(false)
-const isRange = ref<boolean>(false)
 const error = ref<string | null>(null)
 const editDialogVisible = ref(false)
 const editFormRef = ref<any>(null)
@@ -211,13 +213,13 @@ const {
 const startHour = 8
 const endHour = 22
 
-// function formatDateDisplay(dateStr: string): string {
-//   const today = getCurrentDate()
-//   if (dateStr === today) return '今天'
-//   const d = new Date(dateStr + 'T00:00:00')
-//   const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-//   return `${d.getMonth() + 1}月${d.getDate()}日 周${weekdays[d.getDay()]}`
-// }
+function formatDateDisplay(dateStr: string): string {
+  const today = getCurrentDate()
+  if (dateStr === today) return '今天'
+  const d = new Date(dateStr + 'T00:00:00')
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+  return `${d.getMonth() + 1}月${d.getDate()}日 周${weekdays[d.getDay()]}`
+}
 
 function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -232,7 +234,7 @@ function timeToMinutes(timeStr: string): number {
 }
 
 
-// const dateDisplay = computed(() => formatDateDisplay(currentDate.value))
+const dateDisplay = computed(() => formatDateDisplay(currentDate.value))
 
 const hourRange = computed(() => {
   const hours: number[] = []
@@ -694,24 +696,28 @@ $breakpoint-mobile: 768px;
   flex-wrap: wrap;
   gap: 5px;
 
+  .header-icon {
+    font-size: 24px;
+  }
+
   .header-title {
     font-size: 24px;
     font-weight: 600;
     margin: 0 0 8px 0;
-    // color: var(--text-primary);
-    color: #1a2332;
+    color: rgba(2, 73, 11, 0.7);
+    // color: #1a2332;
   }
 
   .header-divider {
     margin: 0 3px;
-    color: var(--text-secondary);
-    font-size: 20px;
-    font-weight: 400;
+    color: rgb(87, 2, 95, 0.9);
+    font-size: 28px;
+    font-weight: 600;
   }
 
   .header-subtitle {
     margin: 0;
-    color: var(--text-secondary);
+    color: rgba(2, 73, 11, 0.6);
     font-size: 16px;
     opacity: .6;
   }
@@ -765,6 +771,10 @@ $breakpoint-mobile: 768px;
     &:hover {
       background: #c7d2fe;
     }
+
+    .today-text {
+      margin-left: 5px;
+    }
   }
 }
 
@@ -780,34 +790,44 @@ $breakpoint-mobile: 768px;
   font-size: 13px;
   color: #5a6a7a;
   flex-wrap: wrap;
+
+  .dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+    border-radius: 4px;
+    vertical-align: middle;
+
+    &.done {
+      background: #4a7a5c;
+    }
+
+    &.progress {
+      background: #5a6a8a;
+    }
+
+    &.overdue {
+      background: #b15353;
+    }
+
+    &.not-started {
+      background: #8d8e91;
+    }
+  }
+
+  .hint {
+    margin-left: auto;
+    font-size: 12px;
+    color: #b0b8c5;
+    user-select: none;
+
+    .hint-text {
+      margin-left: 10px;
+    }
+  }
 }
 
-.legend-bar .dot {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  vertical-align: middle;
-  margin-right: 4px;
-}
-
-.legend-bar .dot.done {
-  background: #4a7a5c;
-}
-
-.legend-bar .dot.progress {
-  background: #5a6a8a;
-}
-
-.legend-bar .dot.overdue {
-  background: #b15353;
-}
-
-.legend-bar .dot.not-started {
-  background: #8d8e91;
-}
-
-/* ===== 甘特图主体 ===== */
 .gantt-chart {
   overflow-x: auto;
   min-height: 260px;
@@ -845,6 +865,7 @@ $breakpoint-mobile: 768px;
 
     .hour-label {
       flex: 1;
+      font-family: "Segoe UI", Arial, "Liberation Sans", "DejaVu Sans", sans-serif;
       font-size: 14px;
       // color: #7a879a;
       color: #587702;
@@ -862,7 +883,7 @@ $breakpoint-mobile: 768px;
     width: 60px;
     flex-shrink: 0;
     text-align: center;
-    color: rgb(1, 75, 145);
+    color: rgb(2, 121, 65);
   }
 }
 
@@ -871,10 +892,23 @@ $breakpoint-mobile: 768px;
   min-height: 60px;
 
   .empty-state {
-    padding: 40px 0;
-    font-size: 15px;
+    padding: 50px 0;
+    font-size: 32px;
+    font-weight: 600;
     color: #b0b8c5;
     text-align: center;
+
+    .empty-text {
+      margin-left: 10px;
+    }
+
+    .empty-text-start {
+      color: rgba(233, 76, 4, 0.7);
+    }
+
+    .empty-text-end {
+      margin-left: 10px;
+    }
   }
 }
 
@@ -916,76 +950,74 @@ $breakpoint-mobile: 768px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+
+  &.done {
+    background: #4a7a5c;
+  }
+
+  &.in_progress {
+    background: #5a6a8a;
+  }
+
+  &.overdue {
+    background: #b15353;
+  }
+
+  &.not_started {
+    background: #d5dce8;
+  }
 }
 
-.status-dot.done {
-  background: #4a7a5c;
+.task-name {
+  font-family: "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "SimSun", sans-serif;
+  font-size: 14px;
 }
 
-.status-dot.in_progress {
-  background: #5a6a8a;
-}
-
-.status-dot.overdue {
-  background: #b15353;
-}
-
-.status-dot.not_started {
-  background: #d5dce8;
-}
-
-/* ===== 甘特条 ===== */
 .bar-track {
-  flex: 1;
-  height: 32px;
   position: relative;
+  flex: 1;
+  min-width: 200px;
+  height: 26px;
+  margin: 0 4px;
   background: #eef0f5;
   border-radius: 20px;
   cursor: pointer;
   transition: 0.2s;
-  margin: 0 4px;
-  min-width: 200px;
-}
 
-.bar-track:hover {
-  background: #e2e6ed;
-}
+  &:hover {
+    background: #e2e6ed;
+  }
 
-.bar {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  border-radius: 20px;
-  transition: width 0.4s ease, left 0.4s ease, background 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 12px;
-  cursor: pointer;
-}
+  .bar {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 20px;
+    transition: width 0.4s ease, left 0.4s ease, background 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 12px;
+    cursor: pointer;
 
-.bar-done {
-  background: linear-gradient(90deg, #4a7a5c, #6a9a7c);
-}
+    &.bar-done {
+      background: linear-gradient(90deg, #4a7a5c, #6a9a7c);
+    }
 
-.bar-pending {
-  background: linear-gradient(90deg, #5a6a8a, #7a8aaa);
-}
+    &.bar-pending {
+      background: linear-gradient(90deg, #5a6a8a, #7a8aaa);
+    }
 
-.bar-overdue {
-  background: linear-gradient(90deg, #b15353, #d47373);
-  animation: pulse-overdue 1.5s ease-in-out infinite;
-}
+    &.bar-overdue {
+      background: linear-gradient(90deg, #b15353, #d47373);
+      animation: pulse-overdue 1.5s ease-in-out infinite;
+    }
 
-.bar-not-started {
-  background: linear-gradient(90deg, #d5dce8, #8d8e91);
-  opacity: 0.7;
-}
-
-.action {
-  display: flex;
-  width: 60px;
-  flex-shrink: 1;
+    &.bar-not-started {
+      background: linear-gradient(90deg, #d5dce8, #8d8e91);
+      opacity: 0.7;
+    }
+  }
 }
 
 @keyframes pulse-overdue {
@@ -1016,150 +1048,124 @@ $breakpoint-mobile: 768px;
   box-shadow: 0 2px 10px rgba(74, 122, 92, 0.35);
 }
 
-/* ===== 时间范围 ===== */
-.time-range {
-  width: 130px;
-  flex-shrink: 0;
-  text-align: center;
-  font-size: 13px;
-  color: #5a6a7a;
-  font-weight: 450;
-  font-variant-numeric: tabular-nums;
-}
+// /* ===== 时间范围 ===== */
+// .time-range {
+//   width: 130px;
+//   flex-shrink: 0;
+//   text-align: center;
+//   font-size: 13px;
+//   color: #5a6a7a;
+//   font-weight: 450;
+//   font-variant-numeric: tabular-nums;
+// }
 
-.update-btn {
-  background: none;
-  border: none;
-  border-radius: 8px;
-  color: #c8ced8;
-  cursor: pointer;
-  transition: 0.2s;
 
-  svg {
-    width: 15px;
-    height: 15px;
-  }
-}
-
-/* ===== 删除按钮 ===== */
-.delete-btn {
+.action {
   display: flex;
-  align-items: center;
   justify-content: center;
-  // width: 44px;
-  // height: 36px;
-  // flex-shrink: 0;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  color: #c8ced8;
-  cursor: pointer;
-  transition: 0.2s;
+  width: 60px;
+  flex-shrink: 1;
 
-  &:hover {
-    background: #fee2e2;
-    color: #b15353;
+  .update-btn {
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: #c8ced8;
+    cursor: pointer;
+    transition: 0.2s;
+
+    &:hover {
+      color: rgb(94, 165, 1);
+    }
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
   }
 
-  svg {
-    width: 15px;
-    height: 15px;
+  .delete-btn {
+    // display: flex;
+    // align-items: center;
+    // justify-content: center;
+    // width: 44px;
+    // height: 36px;
+    // flex-shrink: 0;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: #c8ced8;
+    cursor: pointer;
+    transition: 0.2s;
+
+    &:hover {
+      color: #b15353;
+    }
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
   }
 }
 
 /* ===== 底部添加区 ===== */
-.add-area {
+.task-operate {
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
   padding-top: 14px;
   border-top: 1px solid #edf0f5;
-}
 
-.task-input {
-  flex: 1;
-  min-width: 140px;
-  padding: 10px 16px;
-  border: 1.5px solid #e2e6ed;
-  border-radius: 30px;
-  font-size: 14px;
-  outline: none;
-  transition: 0.2s;
-  background: #fafbfd;
-  color: #1a2332;
-}
-
-.task-input:focus {
-  border-color: #5a6a8a;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(90, 106, 138, 0.08);
-}
-
-.task-input::placeholder {
-  color: #b0b8c5;
-}
-
-.time-input {
-  width: 50px;
-  padding: 10px 14px;
-  border: 1.5px solid #e2e6ed;
-  border-radius: 30px;
-  font-size: 14px;
-  outline: none;
-  background: #fafbfd;
-  flex-shrink: 0;
-  color: #1a2332;
-}
-
-.time-input:focus {
-  border-color: #5a6a8a;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(90, 106, 138, 0.08);
-}
-
-.time-sep {
-  color: #b0b8c5;
-  font-size: 14px;
-  font-weight: 300;
-  flex-shrink: 0;
+  @media (max-width: $breakpoint-mobile) {
+    flex-direction: column;
+  }
 }
 
 .add-btn {
-  padding: 10px 24px;
+  padding: 10px 20px;
   border: none;
   border-radius: 30px;
-  background: #146300;
+  background: rgba(20, 99, 0, 0.8);
   color: white;
-  font-weight: 500;
   font-size: 14px;
   cursor: pointer;
   transition: 0.2s;
   white-space: nowrap;
 
   &:hover {
-    background: #2c3a4f;
+    background: rgba(20, 99, 0, 1);
+    font-weight: 600;
     transform: scale(0.97);
+  }
+
+  .add-text {
+    margin-left: 3px;
   }
 }
 
 .clear-btn {
-  padding: 10px 24px;
+  padding: 10px 20px;
   border: none;
   border-radius: 30px;
-  background: rgba(20, 99, 0, 0.2);
-  color: #146300;
+  background: rgba(209, 50, 2, 0.2);
+  color: #d44502;
   font-size: 14px;
   cursor: pointer;
   transition: 0.2s;
   white-space: nowrap;
 
   &:hover {
-    background: rgba(20, 99, 0, 0.5);
-    font-weight: 500;
-    color: #be0303;
+    background: rgba(209, 50, 2, 1);
+    font-weight: 600;
+    color: #f1ebeb;
     transform: scale(0.97);
+  }
+
+  .clear-text {
+    margin-left: 3px;
   }
 }
 
@@ -1187,17 +1193,13 @@ $breakpoint-mobile: 768px;
     font-size: 12px;
   }
 
-  .time-range {
-    width: 100px;
-    font-size: 12px;
-  }
+  // .time-range {
+  //   width: 100px;
+  //   font-size: 12px;
+  // }
 
   .time-input {
     width: 90px;
-  }
-
-  .add-area {
-    flex-direction: column;
   }
 
   .time-sep {
